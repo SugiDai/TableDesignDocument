@@ -1,7 +1,9 @@
 import openpyxl
 
 def write_create_doc(table_name, write_list, pk_list, fk_list, option_dict):
-
+    """
+    Creat文出力処理
+    """
     file_name = table_name + ".sql" 
     with open(file_name, "w", encoding="utf-8") as f :
 
@@ -13,7 +15,7 @@ def write_create_doc(table_name, write_list, pk_list, fk_list, option_dict):
             line_str = "    " + line['name'] + " " + line['field']
 
             if "size" in line:
-                line_str = line_str + " " + str(line['size'])
+                line_str = line_str + "({})".format(str(line['size']))
 
             if "requir" in line:
                 line_str = line_str + " not null"
@@ -44,11 +46,19 @@ def write_create_doc(table_name, write_list, pk_list, fk_list, option_dict):
         f.write("); \n")
 
 def read_table_sheet(sheet):
+    """
+    テーブル情報取得(シート単位)
+    """
+
+    # テーブル名称取得
+    table_name = sheet.cell(row=2, column=6).value
+
     write_list = []
     option_dict = {}
     pk_list = []
     fk_list = []
 
+    # 6行目から記載無行まで行単位で処理
     for row in sheet.iter_rows(min_row=6):
         row_dict = dict()
 
@@ -87,16 +97,31 @@ def read_table_sheet(sheet):
 
         write_list.append(row_dict)
 
-    return write_list, pk_list, fk_list, option_dict
+    return table_name, write_list, pk_list, fk_list, option_dict
 
-def main():
-    table_name = 'test_table'
 
-    wb = openpyxl.load_workbook('TableDesignDocument.xlsx')
-    sheet = wb[table_name]
-
-    write_list, pk_list, fk_list, option_dict =  read_table_sheet(sheet)
+def make_create_sheet(sheet):
+    """
+    シートからCreate文作成
+    """
+    table_name, write_list, pk_list, fk_list, option_dict =  read_table_sheet(sheet)
     write_create_doc(table_name, write_list, pk_list, fk_list, option_dict)
 
+
+def main():
+    """
+    メイン処理
+    """
+    # ワークシート読み込み
+    wb = openpyxl.load_workbook('TableDesignDocument.xlsx')
+
+    for name in wb.sheetnames:
+        if name=="テーブル一覧":
+            continue
+
+        # 処理対象シート取得
+        sheet = wb[name]
+        make_create_sheet(sheet)
+ 
 if __name__ == "__main__":
     main()
